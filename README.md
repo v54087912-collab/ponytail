@@ -12,6 +12,11 @@
 </p>
 
 <p align="center">
+  <strong>🚀 <a href="https://ponytailmcp.youganksaini1.workers.dev/">Open Global MCP Server Dashboard</a> 🚀</strong><br>
+  <code>https://ponytailmcp.youganksaini1.workers.dev/sse</code>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/github/stars/DietrichGebert/ponytail?style=flat-square&color=111111&label=stars" alt="Stars">
   <img src="https://img.shields.io/github/v/release/DietrichGebert/ponytail?style=flat-square&color=111111&label=release" alt="Release">
   <img src="https://img.shields.io/npm/v/@dietrichgebert/ponytail?style=flat-square&color=111111&label=npm" alt="npm">
