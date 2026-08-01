@@ -1,9 +1,47 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { z } from "zod";
 import { MODES, buildInstructions, resolveMode } from "./instructions.js";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+
+class CloudflareSSETransport {
+  constructor(endpoint) {
+    this.endpoint = endpoint;
+    this.sessionId = crypto.randomUUID();
+    this.controller = null;
+    this.stream = new ReadableStream({
+      start: (controller) => {
+        this.controller = controller;
+      }
+    });
+  }
+
+  async start() {
+    this.sendEvent("endpoint", this.endpoint + "?sessionId=" + this.sessionId);
+  }
+
+  async close() {
+    if (this.controller) {
+      try { this.controller.close(); } catch (e) {}
+    }
+    if (this.onclose) this.onclose();
+  }
+
+  async send(message) {
+    this.sendEvent("message", JSON.stringify(message));
+  }
+
+  sendEvent(event, data) {
+    if (!this.controller) return;
+    const chunk = `event: ${event}\ndata: ${data}\n\n`;
+    this.controller.enqueue(new TextEncoder().encode(chunk));
+  }
+
+  async handlePostMessage(req) {
+    const message = await req.json();
+    if (this.onmessage) this.onmessage(message);
+  }
+}
 
 const app = new Hono();
 app.use("/*", cors());
@@ -52,7 +90,9 @@ function createMcpServer() {
 
 app.get("/sse", async (c) => {
   const server = createMcpServer();
-  const transport = new SSEServerTransport("/messages", c.req.raw);
+  
+  // Use relative path for endpoint. Client will resolve it against the SSE URL.
+  const transport = new CloudflareSSETransport("/messages");
   await server.connect(transport);
   
   const sessionId = transport.sessionId;
@@ -60,13 +100,15 @@ app.get("/sse", async (c) => {
 
   c.req.raw.signal.addEventListener("abort", () => {
     transports.delete(sessionId);
+    transport.close();
   });
 
   return new Response(transport.stream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive"
+      "Connection": "keep-alive",
+      "Access-Control-Allow-Origin": "*"
     }
   });
 });
