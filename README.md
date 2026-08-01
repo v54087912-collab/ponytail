@@ -246,6 +246,17 @@ clawhub install ponytail
 
 Installs ponytail as an OpenClaw skill from ClawHub; the review, audit, debt, gain, and help skills install the same way (`clawhub install ponytail-review`, and so on). OpenClaw applies it on coding tasks and also exposes it as a `/ponytail` command. Without ClawHub, copy [`.openclaw/skills/ponytail`](.openclaw/skills/) into `~/.openclaw/skills/`.
 
+### Global MCP Server (Cloudflare)
+
+Ponytail is now available as a **Global MCP Server** hosted on Cloudflare Workers. This means you can connect any MCP-compatible AI agent (like Cursor or Windsurf) without installing anything locally.
+
+1. Open your AI Agent's MCP Settings.
+2. Add a new server.
+3. Set type to **SSE**.
+4. Use this endpoint URL: `https://ponytailmcp.youganksaini1.workers.dev/sse`
+
+A professional UI landing page is also available at the root URL if you visit it in your browser.
+
 That was it. He'd be proud. He won't say it.
 
 Active every session, with a handful of commands (see [Commands](#commands)). `/ponytail ultra` exists for when the codebase has wronged you personally. Startup and mode-change text shows the current mode.
@@ -324,6 +335,14 @@ The code you never wrote scales infinitely. Zero bugs, zero CVEs, 100% uptime si
 
 **Why "ponytail"?**
 You know exactly why.
+
+## Developer & Community
+
+- **Contact Developer (Telegram):** [R3V_X](https://t.me/R3V_X)
+- **Community (Telegram):** [All Information](https://t.me/allinformation0173)
+- **Instagram:** [@opeditzxx](https://www.instagram.com/opeditzxx/?utm_source=qr&r=nametag)
+- **GitHub:** [v54087912-collab](https://github.com/v54087912-collab)
+- **Portfolio Web:** [aboutmee.pages.dev](https://aboutmee.pages.dev/)
 
 ## Sponsors
 
