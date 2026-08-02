@@ -111,6 +111,27 @@ function createMcpServer() {
   return server;
 }
 
+// Helper to handle MCP requests statelessly (Streamable HTTP / cross-isolate fallback)
+async function handleStatelessMcpRequest(jsonRpcMessage) {
+  const server = createMcpServer();
+  let responseMessage = null;
+
+  const transport = {
+    start: async () => {},
+    close: async () => {},
+    send: async (msg) => {
+      responseMessage = msg;
+    }
+  };
+
+  await server.connect(transport);
+  if (transport.onmessage) {
+    await transport.onmessage(jsonRpcMessage);
+  }
+
+  return responseMessage;
+}
+
 app.get("/sse", async (c) => {
   const server = createMcpServer();
   
@@ -131,15 +152,30 @@ app.get("/sse", async (c) => {
   });
 });
 
+app.post("/sse", async (c) => {
+  const body = await c.req.json();
+  const response = await handleStatelessMcpRequest(body);
+  if (response) {
+    return c.json(response);
+  }
+  return c.text("OK", 200);
+});
+
 app.post("/messages", async (c) => {
   const sessionId = c.req.query("sessionId");
-  const transport = transports.get(sessionId);
+  const transport = sessionId ? transports.get(sessionId) : null;
 
-  if (!transport) {
-    return c.text("Session not found", 404);
+  if (transport) {
+    await transport.handlePostMessage(c.req.raw);
+    return c.text("Accepted", 202);
   }
 
-  await transport.handlePostMessage(c.req.raw);
+  // Fallback for cross-isolate POST requests: handle statelessly
+  const body = await c.req.json();
+  const response = await handleStatelessMcpRequest(body);
+  if (response) {
+    return c.json(response);
+  }
   return c.text("Accepted", 202);
 });
 
