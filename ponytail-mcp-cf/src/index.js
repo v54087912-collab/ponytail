@@ -114,22 +114,34 @@ function createMcpServer() {
 // Helper to handle MCP requests statelessly (Streamable HTTP / cross-isolate fallback)
 async function handleStatelessMcpRequest(jsonRpcMessage) {
   const server = createMcpServer();
-  let responseMessage = null;
 
-  const transport = {
-    start: async () => {},
-    close: async () => {},
-    send: async (msg) => {
-      responseMessage = msg;
+  return new Promise(async (resolve) => {
+    let resolved = false;
+
+    const transport = {
+      start: async () => {},
+      close: async () => {},
+      send: async (msg) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(msg);
+        }
+      }
+    };
+
+    await server.connect(transport);
+    if (transport.onmessage) {
+      transport.onmessage(jsonRpcMessage);
     }
-  };
 
-  await server.connect(transport);
-  if (transport.onmessage) {
-    await transport.onmessage(jsonRpcMessage);
-  }
-
-  return responseMessage;
+    // Safety timeout for notifications that do not send a response
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    }, 1500);
+  });
 }
 
 app.get("/sse", async (c) => {
