@@ -147,7 +147,11 @@ async function handleStatelessMcpRequest(jsonRpcMessage) {
 app.get("/sse", async (c) => {
   const server = createMcpServer();
   
-  const transport = new CloudflareSSETransport("/messages", (sessionId) => {
+  // Use absolute URL for maximum client compatibility
+  const url = new URL(c.req.url);
+  const endpointUrl = `${url.origin}/messages`;
+  
+  const transport = new CloudflareSSETransport(endpointUrl, (sessionId) => {
     transports.delete(sessionId);
   });
   
@@ -183,7 +187,13 @@ app.post("/messages", async (c) => {
   }
 
   // Fallback for cross-isolate POST requests: handle statelessly
-  const body = await c.req.json();
+  let body;
+  try {
+    body = await c.req.json();
+  } catch (e) {
+    return c.text("Bad Request: Invalid JSON", 400);
+  }
+  
   const response = await handleStatelessMcpRequest(body);
   if (response) {
     return c.json(response);
