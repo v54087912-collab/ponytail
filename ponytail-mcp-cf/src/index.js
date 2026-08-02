@@ -9,6 +9,7 @@ class CloudflareSSETransport {
     this.endpoint = endpoint;
     this.sessionId = crypto.randomUUID();
     this.controller = null;
+    this.interval = null;
     this.stream = new ReadableStream({
       start: (controller) => {
         this.controller = controller;
@@ -22,9 +23,21 @@ class CloudflareSSETransport {
 
   async start() {
     this.sendEvent("endpoint", this.endpoint + "?sessionId=" + this.sessionId);
+    // Keep Cloudflare Worker isolate alive with an SSE heartbeat every 15s
+    this.interval = setInterval(() => {
+      try {
+        this.sendComment("ping");
+      } catch (e) {
+        this.close();
+      }
+    }, 15000);
   }
 
   async close() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
     if (this.controller) {
       try { this.controller.close(); } catch (e) {}
     }
@@ -38,6 +51,12 @@ class CloudflareSSETransport {
   sendEvent(event, data) {
     if (!this.controller) return;
     const chunk = `event: ${event}\ndata: ${data}\n\n`;
+    this.controller.enqueue(new TextEncoder().encode(chunk));
+  }
+
+  sendComment(comment) {
+    if (!this.controller) return;
+    const chunk = `: ${comment}\n\n`;
     this.controller.enqueue(new TextEncoder().encode(chunk));
   }
 
