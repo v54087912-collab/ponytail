@@ -5,13 +5,17 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 
 class CloudflareSSETransport {
-  constructor(endpoint) {
+  constructor(endpoint, onCleanup) {
     this.endpoint = endpoint;
     this.sessionId = crypto.randomUUID();
     this.controller = null;
     this.stream = new ReadableStream({
       start: (controller) => {
         this.controller = controller;
+      },
+      cancel: () => {
+        if (onCleanup) onCleanup(this.sessionId);
+        this.close();
       }
     });
   }
@@ -91,17 +95,12 @@ function createMcpServer() {
 app.get("/sse", async (c) => {
   const server = createMcpServer();
   
-  // Use relative path for endpoint. Client will resolve it against the SSE URL.
-  const transport = new CloudflareSSETransport("/messages");
-  await server.connect(transport);
-  
-  const sessionId = transport.sessionId;
-  transports.set(sessionId, transport);
-
-  c.req.raw.signal.addEventListener("abort", () => {
+  const transport = new CloudflareSSETransport("/messages", (sessionId) => {
     transports.delete(sessionId);
-    transport.close();
   });
+  
+  await server.connect(transport);
+  transports.set(transport.sessionId, transport);
 
   return new Response(transport.stream, {
     headers: {
