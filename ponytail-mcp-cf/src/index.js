@@ -131,7 +131,7 @@ async function handleStatelessMcpRequest(jsonRpcMessage) {
 
     await server.connect(transport);
     if (transport.onmessage) {
-      transport.onmessage(jsonRpcMessage);
+      await transport.onmessage(jsonRpcMessage);
     }
 
     // Safety timeout for notifications that do not send a response
